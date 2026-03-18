@@ -8,7 +8,7 @@ export default async function handler(req, res) {
 
     const prompt = `Format the following citations into ${style} style.
 
-Return ONLY the formatted citations.
+Return ONLY the formatted citations, one per line.
 
 ${input}`;
 
@@ -33,18 +33,17 @@ ${input}`;
 
     const data = await response.json();
 
-    // Extract Claude text safely
+    // Extract all text safely
     const text =
-      data?.content?.[0]?.text ||
-      "Could not format citations.";
+      data?.content
+        ?.filter(block => block.type === "text")
+        ?.map(block => block.text)
+        ?.join("\n")
+        ?.trim() || "Claude returned no text.";
 
-    res.status(200).json({
-      result: text
-    });
+    res.status(200).json({ result: text });
 
   } catch (error) {
-    res.status(500).json({
-      error: error.message
-    });
+    res.status(500).json({ error: error.message });
   }
 }
