@@ -1,5 +1,4 @@
 export default async function handler(req, res) {
-  // Allow only POST
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
@@ -7,7 +6,9 @@ export default async function handler(req, res) {
   try {
     const { input, style } = req.body;
 
-    const prompt = `Format the following citations into ${style} style:
+    const prompt = `Format the following citations into ${style} style.
+
+Return ONLY the formatted citations.
 
 ${input}`;
 
@@ -32,10 +33,17 @@ ${input}`;
 
     const data = await response.json();
 
-    return res.status(200).json(data);
+    // Extract Claude text safely
+    const text =
+      data?.content?.[0]?.text ||
+      "Could not format citations.";
+
+    res.status(200).json({
+      result: text
+    });
 
   } catch (error) {
-    return res.status(500).json({
+    res.status(500).json({
       error: error.message
     });
   }
