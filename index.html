@@ -393,8 +393,7 @@ async function fixCitations() {
       throw new Error(data.error || "API error");
     }
 
-    const result = data.content.map(b => b.text || '').join('\n').trim();
-
+    const result = data.content?.map(b => b.text || '').join('\n').trim() || "No result returned.";
     outputText.textContent = result;
     outputLabel.textContent = `✓ Fixed — ${selectedStyle} Style`;
     outputCard.classList.add('visible');
