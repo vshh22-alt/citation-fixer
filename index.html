@@ -346,103 +346,81 @@ Brown, T, et al. Language Models are Few-Shot Learners. NeurIPS 2020."></textare
 </main>
 
 <script>
-  let selectedStyle = 'APA';
+let selectedStyle = 'APA';
 
-  document.querySelectorAll('.style-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.style-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      selectedStyle = btn.dataset.style;
-    });
+document.querySelectorAll('.style-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.style-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedStyle = btn.dataset.style;
   });
+});
 
-  async function fixCitations() {
-    const input = document.getElementById('inputText').value.trim();
-    const btn = document.getElementById('fixBtn');
-    const errorMsg = document.getElementById('errorMsg');
-    const outputCard = document.getElementById('outputCard');
-    const outputText = document.getElementById('outputText');
-    const outputLabel = document.getElementById('outputLabel');
+async function fixCitations() {
+  const input = document.getElementById('inputText').value.trim();
+  const btn = document.getElementById('fixBtn');
+  const errorMsg = document.getElementById('errorMsg');
+  const outputCard = document.getElementById('outputCard');
+  const outputText = document.getElementById('outputText');
+  const outputLabel = document.getElementById('outputLabel');
 
-    if (!input) {
-      showError('Please paste some citations first.');
-      return;
+  if (!input) {
+    showError('Please paste some citations first.');
+    return;
+  }
+
+  errorMsg.style.display = 'none';
+  outputCard.classList.remove('visible');
+  btn.classList.add('loading');
+  btn.disabled = true;
+
+  try {
+
+    const response = await fetch("/api/fix", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        input: input,
+        style: selectedStyle
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "API error");
     }
 
-    errorMsg.style.display = 'none';
-    outputCard.classList.remove('visible');
-    btn.classList.add('loading');
-    btn.disabled = true;
+    const result = data.content.map(b => b.text || '').join('\n').trim();
 
-    const prompt = `You are an expert academic citation formatter. The user has pasted messy, inconsistent, or incomplete citations. Your job is to reformat ALL of them into correct ${selectedStyle} style.
+    outputText.textContent = result;
+    outputLabel.textContent = `✓ Fixed — ${selectedStyle} Style`;
+    outputCard.classList.add('visible');
 
-Rules:
-- Format every citation into proper ${selectedStyle} format
-- If a field is clearly missing (like a year or page number), use "[n.d.]" for dates or note it in brackets
-- Output ONLY the formatted citations, one per line, numbered
-- Do not add any preamble, explanation, or commentary — just the clean formatted list
-- If you cannot determine the citation type, make your best guess based on the information given
+  } catch (err) {
+    showError("Something went wrong: " + err.message);
+  } finally {
+    btn.classList.remove('loading');
+    btn.disabled = false;
+  }
+}
 
-Here are the citations to fix:
+function showError(msg) {
+  const el = document.getElementById('errorMsg');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
 
-${input}`;
-
-    try {
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": "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",
-      "anthropic-version": "2023-06-01"
-    },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 1000,
-      messages: [
-        {
-          role: "user",
-          content: prompt
-        }
-      ]
-    })
+function copyCitations() {
+  const text = document.getElementById('outputText').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('.copy-btn');
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy All', 2000);
   });
-
-  const data = await response.json();
-
-      
-
-      if (!response.ok) {
-        throw new Error(data.error?.message || 'API error');
-      }
-
-      const result = data.content.map(b => b.text || '').join('\n').trim();
-      outputText.textContent = result;
-      outputLabel.textContent = `✓ Fixed — ${selectedStyle} Style`;
-      outputCard.classList.add('visible');
-      outputCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-
-    } catch (err) {
-      showError('Something went wrong: ' + err.message);
-    } finally {
-      btn.classList.remove('loading');
-      btn.disabled = false;
-    }
-  }
-
-  function showError(msg) {
-    const el = document.getElementById('errorMsg');
-    el.textContent = msg;
-    el.style.display = 'block';
-  }
-
-  function copyCitations() {
-    const text = document.getElementById('outputText').textContent;
-    navigator.clipboard.writeText(text).then(() => {
-      const btn = document.querySelector('.copy-btn');
-      btn.textContent = 'Copied!';
-      setTimeout(() => btn.textContent = 'Copy All', 2000);
-    });
-  }
+}
 </script>
 </body>
 </html>
